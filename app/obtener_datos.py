@@ -1,7 +1,8 @@
 from typing import Dict
 
 import requests
-from config import LAMBDA_URL
+
+from .config import LAMBDA_URL
 
 
 def obtener_todos_datos_activo_petroleo() -> Dict:
