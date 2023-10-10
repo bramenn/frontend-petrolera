@@ -16,10 +16,10 @@ jobs:
         python-version: "3.10"
     - uses: isort/isort-action@master
       with:
-        sortPaths: "./app"
+        sortPaths: "."
     - uses: psf/black@stable
       with:
-        src: "./app"
+        src: "."
         version: "22.12.0"
     - name: pre-commit
       run: |
