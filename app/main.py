@@ -8,8 +8,10 @@ from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
 from fastapi import FastAPI
 from fastapi.middleware.wsgi import WSGIMiddleware
-from obtener_datos import (obtener_datos_activo_id_activo_petroleo,
-                           obtener_todos_datos_activo_petroleo)
+from obtener_datos import (
+    obtener_datos_activo_id_activo_petroleo,
+    obtener_todos_datos_activo_petroleo,
+)
 
 df = pd.DataFrame(obtener_todos_datos_activo_petroleo())
 
