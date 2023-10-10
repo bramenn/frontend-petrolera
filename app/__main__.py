@@ -198,4 +198,4 @@ app = FastAPI()
 app.mount("/dash", WSGIMiddleware(app_dash.server))
 
 if __name__ == "__main__":
-    uvicorn.run(app="main:app", reload=True, port=8080)
+    uvicorn.run(app=app, host="0.0.0.0", port=8000)
