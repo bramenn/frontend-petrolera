@@ -1,17 +1,15 @@
-from dash.dependencies import Output, Input
-from dash import html, dcc, Dash
 import dash_daq as daq
-import plotly
-import plotly.graph_objs as go
 import pandas as pd
+import plotly
+import plotly.express as px
+import plotly.graph_objs as go
+import uvicorn
+from dash import Dash, dcc, html
+from dash.dependencies import Input, Output
 from fastapi import FastAPI
 from fastapi.middleware.wsgi import WSGIMiddleware
-import uvicorn
-import plotly.express as px
-from obtener_datos import (
-    obtener_datos_activo_id_activo_petroleo,
-    obtener_todos_datos_activo_petroleo,
-)
+from obtener_datos import (obtener_datos_activo_id_activo_petroleo,
+                           obtener_todos_datos_activo_petroleo)
 
 df = pd.DataFrame(obtener_todos_datos_activo_petroleo())
 
@@ -77,9 +75,11 @@ app_dash.layout = html.Div(
             ],
             className="d-grid gap-2",
         ),
-        html.Div([
-            dcc.Graph(id="graph"),
-        ])
+        html.Div(
+            [
+                dcc.Graph(id="graph"),
+            ]
+        ),
     ],
     id="mainContainer",
     style={"display": "flex", "flex-direction": "column"},
@@ -181,13 +181,14 @@ def update_confirmed(n_intervals):
 )
 def generate_chart(n_intervals):
     fig = px.scatter_mapbox(
-                df,
-                lat="latitud",
-                lon="longitud",
-                zoom=3,
-            )
+        df,
+        lat="latitud",
+        lon="longitud",
+        zoom=3,
+    )
     fig.update_layout(mapbox_style="open-street-map")
     return fig
+
 
 app = FastAPI()
 
