@@ -1,10 +1,13 @@
+from datetime import datetime
+
+import dash_bootstrap_components as dbc
 import dash_daq as daq
 import pandas as pd
 import plotly
 import plotly.express as px
 import plotly.graph_objs as go
 import uvicorn
-from dash import Dash, dash_table, dcc, html
+from dash import Dash, State, dash_table, dcc, html
 from dash.dependencies import Input, Output
 from fastapi import FastAPI
 from fastapi.middleware.wsgi import WSGIMiddleware
@@ -12,7 +15,7 @@ from fastapi.middleware.wsgi import WSGIMiddleware
 from .monitoero_activo import endpoint as monitoero_activo_enpoint
 from .monitoero_activo.endpoint import df
 
-app_dash = Dash(__name__, requests_pathname_prefix="/dash/")
+app_dash = Dash(title="Petroli", requests_pathname_prefix="/dash/", update_title=None)
 
 app_dash.layout = html.Div(
     [
@@ -35,6 +38,7 @@ app_dash.layout = html.Div(
                     columns=[{"name": i, "id": i} for i in df.columns],
                     page_size=10,
                     style_table={"overflow-x": "auto"},
+                    sort_action="native",
                 ),
                 dcc.Graph(
                     id="live-graph-presion",
@@ -88,6 +92,21 @@ app_dash.layout = html.Div(
         html.Div(
             [
                 dcc.Graph(id="graph"),
+                html.H1(children="Descargar todos los datos", style={"textAlign": "center"}),
+                dcc.Download(id="download"),
+                dcc.Dropdown(
+                    options=[
+                        {"label": "Excel file", "value": "excel"},
+                        {"label": "CSV file", "value": "csv"},
+                    ],
+                    id="dropdown",
+                    placeholder="Choose download file type. Default is CSV format!",
+                ),
+                dbc.Col(
+                    [
+                        dbc.Button("Download Data", id="btn_csv"),
+                    ]
+                ),
             ]
         ),
     ],
@@ -105,7 +124,25 @@ app_dash.layout = html.Div(
 )
 def update_graph(n_intervals, id_activo_petroleo=df["id_activo_petroleo"][0]):
     dff: pd.DataFrame = df.loc[df["id_activo_petroleo"] == id_activo_petroleo].copy()
-    return df.to_dict("records")
+    return dff.to_dict("records")
+
+
+@app_dash.callback(
+    Output("download", "data"),
+    Input("btn_csv", "n_clicks"),
+    State("dropdown", "value"),
+    prevent_initial_call=True,
+)
+def func(n_clicks_btn, download_type):
+    if download_type == "csv":
+        return dcc.send_data_frame(
+            df.to_csv,
+            f"reporte-petroli-{datetime.now().strftime('%m/%d/%Y_%H:%M:%S')}.csv",
+        )
+    else:
+        return dcc.send_data_frame(
+            df.to_excel, f"reporte-petroli-{datetime.now().strftime('%m/%d/%Y_%H:%M:%S')}.xlsx"
+        )
 
 
 @app_dash.callback(

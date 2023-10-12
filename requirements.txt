@@ -3,3 +3,5 @@ uvicorn[standard]
 dash-daq
 dash
 pandas
+dash-bootstrap-components
+openpyxl
