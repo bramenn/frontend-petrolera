@@ -4,23 +4,19 @@ import plotly
 import plotly.express as px
 import plotly.graph_objs as go
 import uvicorn
-from dash import Dash, dcc, html
+from dash import Dash, dash_table, dcc, html
 from dash.dependencies import Input, Output
 from fastapi import FastAPI
 from fastapi.middleware.wsgi import WSGIMiddleware
 
-from .obtener_datos import (
-    obtener_datos_activo_id_activo_petroleo,
-    obtener_todos_datos_activo_petroleo,
-)
-
-df = pd.DataFrame(obtener_todos_datos_activo_petroleo())
+from .monitoero_activo import endpoint as monitoero_activo_enpoint
+from .monitoero_activo.endpoint import df
 
 app_dash = Dash(__name__, requests_pathname_prefix="/dash/")
 
 app_dash.layout = html.Div(
     [
-        dcc.Interval(id="update_value", interval=2 * 1000),
+        dcc.Interval(id="update_value", interval=1 * 1000),
         html.Div(
             [
                 html.H1(children="Graficos de PETROLI", style={"textAlign": "center"}),
@@ -34,8 +30,19 @@ app_dash.layout = html.Div(
         ),
         html.Div(
             [
+                dash_table.DataTable(
+                    id="table",
+                    columns=[{"name": i, "id": i} for i in df.columns],
+                    page_size=10,
+                    style_table={"overflow-x": "auto"},
+                ),
                 dcc.Graph(
-                    id="live-graph",
+                    id="live-graph-presion",
+                    animate=True,
+                    style={"display": "flex", "flex-direction": "column"},
+                ),
+                dcc.Graph(
+                    id="live-graph-flujo",
                     animate=True,
                     style={"display": "flex", "flex-direction": "column"},
                 ),
@@ -90,20 +97,29 @@ app_dash.layout = html.Div(
 
 
 @app_dash.callback(
-    Output("live-graph", "figure"),
+    Output("table", "data"),
+    [
+        Input("update_value", "n_intervals"),
+        Input("id_activo_petroleo", "value"),
+    ],
+)
+def update_graph(n_intervals, id_activo_petroleo=df["id_activo_petroleo"][0]):
+    dff: pd.DataFrame = df.loc[df["id_activo_petroleo"] == id_activo_petroleo].copy()
+    return df.to_dict("records")
+
+
+@app_dash.callback(
+    Output("live-graph-presion", "figure"),
     Input("update_value", "n_intervals"),
     Input("id_activo_petroleo", "value"),
 )
 def update_graph_scatter(n_intervals, id_activo_petroleo=df["id_activo_petroleo"][0]):
-    global df
-
-    df = pd.DataFrame(obtener_datos_activo_id_activo_petroleo(id_activo_petroleo))
-
-    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s")
+    dff = df.loc[df["id_activo_petroleo"] == id_activo_petroleo].copy()
+    dff["timestamp"] = pd.to_datetime(dff["timestamp"], format="mixed")
 
     data = plotly.graph_objs.Scatter(
-        x=list(df["timestamp"]),
-        y=df["presion"],
+        x=list(dff["timestamp"]),
+        y=dff["presion"],
         name="Scatter",
         mode="lines+markers+text",
         textfont=dict(color="#E58606"),
@@ -128,8 +144,8 @@ def update_graph_scatter(n_intervals, id_activo_petroleo=df["id_activo_petroleo"
             titlefont={"color": "black", "size": 24},
             margin=dict(t=50, r=10),
             xaxis=dict(
-                range=[max(df["timestamp"]) - seconds_ago, df["timestamp"].max()],
-                title="<b>Hora (HH::MM:SS)</b>",
+                range=[max(dff["timestamp"]) - seconds_ago, dff["timestamp"].max()],
+                title="<b>Hora (MM:SS)</b>",
                 color="black",
                 showline=True,
                 showgrid=True,
@@ -139,7 +155,7 @@ def update_graph_scatter(n_intervals, id_activo_petroleo=df["id_activo_petroleo"
                 tickfont=dict(family="Arial", size=12, color="black"),
             ),
             yaxis=dict(
-                range=[min(df["presion"]), max(df["presion"])],
+                range=[min(dff["presion"]), max(dff["presion"])],
                 title="<b>Presion (Pa)</b>",
                 color="black",
                 zeroline=False,
@@ -155,24 +171,102 @@ def update_graph_scatter(n_intervals, id_activo_petroleo=df["id_activo_petroleo"
 
 
 @app_dash.callback(
-    Output("daq_gauge1", "value"),
+    Output("live-graph-flujo", "figure"),
+    Input("update_value", "n_intervals"),
+    Input("id_activo_petroleo", "value"),
+)
+def update_graph_scatter(n_intervals, id_activo_petroleo=df["id_activo_petroleo"][0]):
+    dff = df.loc[df["id_activo_petroleo"] == id_activo_petroleo].copy()
+    dff["timestamp"] = pd.to_datetime(dff["timestamp"], format="mixed")
+
+    data = plotly.graph_objs.Scatter(
+        x=list(dff["timestamp"]),
+        y=dff["flujo"],
+        name="Scatter",
+        mode="lines+markers+text",
+        textfont=dict(color="#E58606"),
+        marker=dict(color="#5D69B1", size=8),
+        line=dict(color="#52BCA3", width=1),
+    )
+
+    seconds_ago = pd.Timedelta(seconds=500)
+
+    return {
+        "data": [data],
+        "layout": go.Layout(
+            plot_bgcolor="rgba(255, 255, 255, 0)",
+            paper_bgcolor="rgba(255, 255, 255, 0)",
+            title={
+                "text": "<b>Flujo vs Tiempo</b>",
+                "y": 0.95,
+                "x": 0.5,
+                "xanchor": "center",
+                "yanchor": "top",
+            },
+            titlefont={"color": "black", "size": 24},
+            margin=dict(t=50, r=10),
+            xaxis=dict(
+                range=[max(dff["timestamp"]) - seconds_ago, dff["timestamp"].max()],
+                title="<b>Hora (MM:SS)</b>",
+                color="black",
+                showline=True,
+                showgrid=True,
+                linecolor="black",
+                linewidth=1,
+                ticks="outside",
+                tickfont=dict(family="Arial", size=12, color="black"),
+            ),
+            yaxis=dict(
+                range=[min(dff["flujo"]), max(dff["flujo"])],
+                title="<b>Flujo (gpm)</b>",
+                color="black",
+                zeroline=False,
+                showline=True,
+                showgrid=True,
+                linecolor="black",
+                linewidth=1,
+                ticks="outside",
+                tickfont=dict(family="Arial", size=12, color="black"),
+            ),
+        ),
+    }
+
+
+@app_dash.callback(
+    Output("id_activo_petroleo", "options"),
     [
         Input("update_value", "n_intervals"),
     ],
 )
 def update_confirmed(n_intervals):
-    get_temp = df["almacenamiento_disponible"].head(1).iloc[0]
-    return get_temp
+    return sorted(df["id_activo_petroleo"].unique())
+
+
+@app_dash.callback(
+    Output("daq_gauge1", "value"),
+    [
+        Input("update_value", "n_intervals"),
+        Input("id_activo_petroleo", "value"),
+    ],
+)
+def update_confirmed(n_intervals, id_activo_petroleo=df["id_activo_petroleo"][0]):
+    global df
+    dff: pd.DataFrame = df.loc[df["id_activo_petroleo"] == id_activo_petroleo].copy()
+    get_storage = dff["almacenamiento_disponible"].tail(1).iloc[0]
+    return get_storage
 
 
 @app_dash.callback(
     Output("daq_gauge2", "value"),
     [
         Input("update_value", "n_intervals"),
+        Input("id_activo_petroleo", "value"),
     ],
 )
-def update_confirmed(n_intervals):
-    get_temp = df["temperatura"].head(1).iloc[0]
+def update_confirmed(n_intervals, id_activo_petroleo=df["id_activo_petroleo"][0]):
+    global df
+    dff: pd.DataFrame = df.loc[df["id_activo_petroleo"] == id_activo_petroleo].copy()
+    get_temp = dff["temperatura"].tail(1).iloc[0]
     return get_temp
 
 
@@ -180,11 +274,14 @@ def update_confirmed(n_intervals):
     Output("graph", "figure"),
     [
         Input("update_value", "n_intervals"),
+        Input("id_activo_petroleo", "value"),
     ],
 )
-def generate_chart(n_intervals):
+def generate_chart(n_intervals, id_activo_petroleo=df["id_activo_petroleo"][0]):
+    global df
+    dff: pd.DataFrame = df.loc[df["id_activo_petroleo"] == id_activo_petroleo].copy()
     fig = px.scatter_mapbox(
-        df,
+        dff,
         lat="latitud",
         lon="longitud",
         zoom=3,
@@ -195,7 +292,14 @@ def generate_chart(n_intervals):
 
 app = FastAPI()
 
+app.include_router(
+    monitoero_activo_enpoint.router,
+    prefix="/v1/monitoero_activo",
+    tags=["monitoero_activo"],
+)
+
 app.mount("/dash", WSGIMiddleware(app_dash.server))
+
 
 if __name__ == "__main__":
     uvicorn.run(app=app, host="0.0.0.0", port=8000)
