@@ -100,7 +100,7 @@ app_dash.layout = html.Div(
                         {"label": "CSV file", "value": "csv"},
                     ],
                     id="dropdown",
-                    placeholder="Choose download file type. Default is CSV format!",
+                    placeholder="Elige tipo de formato a descargar. Por defecto es el formato CSV!",
                 ),
                 dbc.Col(
                     [
