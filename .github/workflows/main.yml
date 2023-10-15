@@ -7,7 +7,7 @@ env:
   ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
   ECS_SERVICE: ${{ secrets.ECS_SERVICE }}
   ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
-  CONTAINER_NAME: ${{ secrets.CONTAINER_NAME }}  
+  CONTAINER_NAME: ${{ secrets.CONTAINER_NAME }}
 
 jobs:
   lint:
