@@ -1,0 +1,50 @@
+{
+    "containerDefinitions": [
+        {
+            "name": "front-graficos",
+            "image": "376288839410.dkr.ecr.us-east-1.amazonaws.com/frontend-petrolera:182a1b93e44abc119d8392437694755ad16faeae",
+            "cpu": 0,
+            "portMappings": [
+                {
+                    "name": "front-graficos-80-tcp",
+                    "containerPort": 80,
+                    "hostPort": 80,
+                    "protocol": "tcp",
+                    "appProtocol": "http"
+                }
+            ],
+            "essential": true,
+            "environment": [],
+            "environmentFiles": [],
+            "mountPoints": [],
+            "volumesFrom": [],
+            "ulimits": [],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-create-group": "true",
+                    "awslogs-group": "/ecs/petrolera-system",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "ecs"
+                },
+                "secretOptions": []
+            }
+        }
+    ],
+    "family": "petrolera-frontend",
+    "taskRoleArn": "arn:aws:iam::376288839410:role/ecsTaskExecutionRole",
+    "executionRoleArn": "arn:aws:iam::376288839410:role/ecsTaskExecutionRole",
+    "networkMode": "awsvpc",
+    "volumes": [],
+    "placementConstraints": [],
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "1024",
+    "memory": "2048",
+    "runtimePlatform": {
+        "cpuArchitecture": "X86_64",
+        "operatingSystemFamily": "LINUX"
+    },
+    "tags": []
+}
