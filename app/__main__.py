@@ -104,7 +104,7 @@ app_dash.layout = html.Div(
                 ),
                 dbc.Col(
                     [
-                        dbc.Button("Download Data", id="btn_csv"),
+                        dbc.Button("Descargar datos", id="btn_csv"),
                     ]
                 ),
             ]
